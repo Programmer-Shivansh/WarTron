@@ -89,7 +89,6 @@ To set up Daichain Warfare locally, follow these steps:
 ## Team [ChainChamps]
 
 - **Shivansh Chauhan**
-- **Ujjwal Parashar**
 - **Tanishq Maheshwari**
 
 ## Technologies Used
