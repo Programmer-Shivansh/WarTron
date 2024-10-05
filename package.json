@@ -1,0 +1,48 @@
+{
+  "name": "r3f-vite-starter",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@chakra-ui/react": "^2.8.2",
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.5",
+    "@react-three/drei": "9.75.0",
+    "@react-three/fiber": "8.13.3",
+    "@react-three/postprocessing": "^2.15.1",
+    "@react-three/rapier": "^1.1.1",
+    "@tabler/icons-react": "^3.11.0",
+    "@types/three": "0.152.1",
+    "axios": "^1.7.2",
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.3.5",
+    "install": "^0.13.0",
+    "leva": "^0.9.35",
+    "npm": "^10.8.2",
+    "playroomkit": "^0.0.36",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-modal": "^3.16.1",
+    "react-model": "^4.3.1",
+    "react-router-dom": "^6.24.1",
+    "recoil": "^0.7.7",
+    "simplex-noise": "^4.0.2",
+    "tailwind-merge": "^2.4.0",
+    "three": "0.153.0",
+    "three-stdlib": "^2.27.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.27",
+    "@types/react-dom": "^18.0.10",
+    "@vitejs/plugin-react": "^3.1.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.3",
+    "vite": "^4.1.0"
+  }
+}
