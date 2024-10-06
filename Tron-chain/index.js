@@ -1,14 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const DiamSdk = require('diamante-sdk-js');
-const {
-    Keypair,
-    TransactionBuilder,
-    Operation,
-    Networks, Asset
-} = require('diamante-base');
-const { Horizon } = require('diamante-sdk-js');
+const {TronWeb} = require('tronweb');
 
 const app = express();
 const port = 3001;
@@ -22,14 +15,24 @@ app.use(cors());
 app.get("/",(req, res) => {
     res.send("Hello, World!");
 })
-app.post('/create-keypair', (req, res) => {
+
+const fullNode = 'https://api.shasta.trongrid.io';
+const solidityNode = 'https://api.shasta.trongrid.io';
+const eventServer = 'https://api.shasta.trongrid.io';
+
+const tronWeb = new TronWeb(
+    fullNode,
+    solidityNode,
+    eventServer
+);
+
+
+app.post('/create-keypair', async (req, res) => {
     try {
-        // console.log('Received request to create keypair');
-        const keypair = Keypair.random();
-        // console.log('Keypair created:', keypair.publicKey(), keypair.secret());
+        const account = await tronWeb.createAccount();
         res.json({
-            publicKey: keypair.publicKey(),
-            secret: keypair.secret()
+            address: account.address.base58,
+            privateKey: account.privateKey
         });
     } catch (error) {
         console.error('Error in create-keypair:', error);
@@ -39,16 +42,12 @@ app.post('/create-keypair', (req, res) => {
 
 app.post('/fund-account', async (req, res) => {
     try {
-        const { publicKey } = req.body;
-        console.log(`Received request to fund account ${publicKey}`);
-        const fetch = await import('node-fetch').then(mod => mod.default);
-        const response = await fetch(`https://friendbot.diamcircle.io/?addr=${publicKey}`);
-        if (!response.ok) {
-            throw new Error(`Failed to activate account ${publicKey}: ${response.statusText}`);
-        }
-        const result = await response.json();
-        // console.log(`Account ${publicKey} activated`, result);
-        res.json({ message: `Account ${publicKey} funded successfully` });
+        const { address } = req.body;
+        console.log(`Received request to fund account ${address}`);
+        
+        // For Shasta testnet, you can use the Shasta Faucet
+        // This is just a placeholder message. In a real application, you'd implement the funding logic here.
+        res.json({ message: `To fund account ${address} on Shasta testnet, please use the Shasta Faucet: https://www.trongrid.io/shasta` });
     } catch (error) {
         console.error('Error in fund-account:', error);
         res.status(500).json({ error: error.message });
@@ -56,188 +55,91 @@ app.post('/fund-account', async (req, res) => {
 });
 app.post('/make-payment', async (req, res) => {
     try {
-        const { senderSecret, receiverPublicKey, amount } = req.body;
-        console.log(`Received request to make payment from ${senderSecret} to ${receiverPublicKey} with amount ${amount}`);
-        if (typeof senderSecret !== 'string' || typeof receiverPublicKey !== 'string' || typeof amount !== 'string' ) {
-            throw new Error('senderSecret and receiverPublicKey and amount must be strings');
-        }
-
-        const server = new DiamSdk.Horizon.Server('https://diamtestnet.diamcircle.io'); // Ensure URL is correct
-        const senderKeypair = DiamSdk.Keypair.fromSecret(senderSecret);
-        const senderPublicKey = senderKeypair.publicKey();
-
-        // Load sender's account
-        const account = await server.loadAccount(senderPublicKey);
-
-        // Create and build the transaction
-        const transaction = new DiamSdk.TransactionBuilder(account, {
-            fee: await server.fetchBaseFee(),
-            networkPassphrase: DiamSdk.Networks.TESTNET,
-        })
-            .addOperation(
-                DiamSdk.Operation.payment({
-                    destination: receiverPublicKey,
-                    asset: DiamSdk.Asset.native(),
-                    amount: (parseFloat(amount)).toFixed(7).toString() // Ensure amount is formatted correctly
-                })
-            )
-            .setTimeout(100) // Adjust timeout as needed
-            .build();
-
-        // Sign the transaction
-        transaction.sign(senderKeypair);
-
-        // Submit the transaction
-        const result = await server.submitTransaction(transaction);
-        console.log(`Payment made from ${senderPublicKey} to ${receiverPublicKey} with amount ${amount}`, result.id);
-        res.json({ message: `Payment of ${amount} DIAM made from ${senderPublicKey} successfully. Transaction ID ${result.id}`, result });
+      const { senderAddress, receiverAddress, amount } = req.body;
+      console.log(`Received request to make payment from ${senderAddress} to ${receiverAddress} with amount ${amount}`);
+  
+      if (typeof senderAddress !== 'string' || typeof receiverAddress !== 'string' || typeof amount !== 'string') {
+        throw new Error('senderAddress, receiverAddress, and amount must be strings');
+      }
+  
+      // Convert TRX to SUN (1 TRX = 1,000,000 SUN)
+      const amountInSun = tronWeb.toSun(amount);
+  
+      // Check if the sender has sufficient balance
+      const balance = await tronWeb.trx.getBalance(senderAddress);
+      if (balance < amountInSun) {
+        throw new Error('Insufficient balance');
+      }
+  
+      // Build the transaction
+      const tradeObj = await tronWeb.transactionBuilder.sendTrx(
+        receiverAddress,
+        amountInSun,
+        senderAddress
+      );
+  
+      // Sign the transaction using the admin's private key
+      const signedTxn = await tronWeb.trx.sign(tradeObj);
+  
+      // Broadcast the transaction
+      const receipt = await tronWeb.trx.sendRawTransaction(signedTxn);
+  
+      console.log(`Payment made from ${senderAddress} to ${receiverAddress} with amount ${amount} TRX`, receipt.txid);
+      res.json({ 
+        message: `Payment of ${amount} TRX made from ${senderAddress} successfully. Transaction ID: ${receipt.txid}`, 
+        result: receipt 
+      });
     } catch (error) {
-        console.error('Error in make-payment:', error.response ? error.response.data : error.message);
-        res.status(500).json({ error: error.response ? error.response.data : error.message });
+      console.error('Error in make-payment:', error.message);
+      res.status(500).json({ error: error.message });
     }
-});
-
-
-// app.post('/make-payment', async (req, res) => {
-//     try {
-//         const { senderSecret, receiverPublicKey, amount } = req.body;
-//         console.log(`Received request to make payment from ${senderSecret} to ${receiverPublicKey} with amount ${amount}`);
-
-//         const server = new Horizon.Server('https://diamtestnet.diamcircle.io/');
-//         const senderKeypair = Keypair.fromSecret(senderSecret);
-//         const senderPublicKey = senderKeypair.publicKey();
-//         // console.log("first")
-//         const account = await server.loadAccount(senderPublicKey);
-//         // console.log("first")
-        
-//         const transaction = new TransactionBuilder(account, {
-//             fee: await server.fetchBaseFee(),
-//             networkPassphrase: Networks.TESTNET,
-//         })
-//             .addOperation(Operation.payment({
-//                 destination: receiverPublicKey,
-//                 asset: Asset.native(),
-//                 amount: amount,
-//             }))
-//             .setTimeout(30)
-//             .build();
-//         // console.log("second")
-//         transaction.sign(senderKeypair);
-//         const result = await server.submitTransaction(transaction);
-//         console.log(`Payment made from ${senderPublicKey} to ${receiverPublicKey} with amount ${amount}`, result);
-//         res.json({ message: `Payment of ${amount} DIAM made from ${senderPublicKey} successfully` });
-//     } catch (error) {
-//         console.error('Error in make-payment:', error);
-//         res.status(500).json({ error: error.message });
-//     }
-// });
+  });
+  
 
 app.post('/give-reward', async (req, res) => {
     try {
         const { senderSecret, receiverSecretKey, amount } = req.body;
-        // console.log(`Received request to make payment from ${senderSecret} to ${receiverPublicKey} with amount ${amount}`);
 
-        const server = new Horizon.Server('https://diamtestnet.diamcircle.io/');
-        const senderKeypair = Keypair.fromSecret(senderSecret);
-        const senderPublicKey = senderKeypair.publicKey();
-        const receiverKeypair = Keypair.fromSecret(receiverSecretKey);
-        const receiverPublicKey = receiverKeypair.publicKey();
-        // console.log("first")
-        const account = await server.loadAccount(senderPublicKey);
-        // console.log("first")
-        const transaction = new DiamSdk.TransactionBuilder(account, {
-            fee: await server.fetchBaseFee(),
-            networkPassphrase: DiamSdk.Networks.TESTNET,
-        })
-            .addOperation(
-                DiamSdk.Operation.payment({
-                    destination: receiverPublicKey,
-                    asset: DiamSdk.Asset.native(),
-                    amount: (parseFloat(amount)).toFixed(7).toString() // Ensure amount is formatted correctly
-                })
-            )
-            .setTimeout(100) // Adjust timeout as needed
-            .build();
+        // tronWeb.setPrivateKey(senderSecret);
+        // const senderPublicKey = tronWeb.address.fromPrivateKey(senderSecret);
+        const senderAddress = tronWeb.address.fromPrivateKey(senderSecret);
 
+
+        const receiverPublicKey = tronWeb.address.fromPrivateKey(receiverSecretKey);
+
+        const amountInSun = tronWeb.toSun(amount);
+
+        // Get the admin's address (sender)
+
+        // Build the transaction
+        const tradeObj = await tronWeb.transactionBuilder.sendTrx(
+            receiverPublicKey,
+            amountInSun,
+            senderAddress
+        );
+        
         // Sign the transaction
-        transaction.sign(senderKeypair);
+        const signedTxn = await tronWeb.trx.sign(tradeObj);
 
-        // Submit the transaction
-        const result = await server.submitTransaction(transaction);
-        console.log(`Payment made from ${senderPublicKey} to ${receiverPublicKey} with amount ${amount}`, result);
-        res.json({ message: `Reward of ${amount} DIAM made to ${receiverPublicKey} successfully. Transaction ID ${result.id}` });
+        // Broadcast the transaction
+        const receipt = await tronWeb.trx.sendRawTransaction(signedTxn);
+
+        console.log(`Payment made from ${senderPublicKey} to ${receiverPublicKey} with amount ${amount}`, receipt);
+        res.json({ message: `Reward of ${amount} TRX made to ${receiverPublicKey} successfully. Transaction ID ${receipt.txid}` });
     } catch (error) {
         console.error('Error in make-payment:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-app.post('/manage-data', async (req, res) => {
-    try {
-        const { senderSecret, key, value } = req.body;
-        console.log(`Received request to manage data for key ${key} with value ${value}`);
-
-        const server = new Horizon.Server('https://diamtestnet.diamcircle.io/');
-        const senderKeypair = Keypair.fromSecret(senderSecret);
-        const senderPublicKey = senderKeypair.publicKey();
-
-        const account = await server.loadAccount(senderPublicKey);
-        const transaction = new TransactionBuilder(account, {
-            fee: await server.fetchBaseFee(),
-            networkPassphrase: Networks.TESTNET,
-        })
-            .addOperation(Operation.manageData({
-                name: key,
-                value: value || null,
-            }))
-            .setTimeout(30)
-            .build();
-
-        transaction.sign(senderKeypair);
-        const result = await server.submitTransaction(transaction);
-        console.log(`Data managed for key ${key} with value ${value}`, result);
-        res.json({ message: `Data for key ${key} managed successfully` });
-    } catch (error) {
-        console.error('Error in manage-data:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
 
 
 
-app.post('/set-options', async (req, res) => {
-    try {
-        const { senderSecret, inflationDest, homeDomain, lowThreshold, medThreshold, highThreshold } = req.body;
-        console.log(`Received request to set options with inflationDest: ${inflationDest}, homeDomain: ${homeDomain}, thresholds: ${lowThreshold}, ${medThreshold}, ${highThreshold}`);
 
-        const server = new Horizon.Server('https://diamtestnet.diamcircle.io/');
-        const senderKeypair = Keypair.fromSecret(senderSecret);
-        const senderPublicKey = senderKeypair.publicKey();
 
-        const account = await server.loadAccount(senderPublicKey);
-        const transaction = new TransactionBuilder(account, {
-            fee: await server.fetchBaseFee(),
-            networkPassphrase: Networks.TESTNET,
-        })
-            .addOperation(Operation.setOptions({
-                inflationDest: inflationDest || undefined,
-                homeDomain: homeDomain || undefined,
-                lowThreshold: lowThreshold ? parseInt(lowThreshold) : undefined,
-                medThreshold: medThreshold ? parseInt(medThreshold) : undefined,
-                highThreshold: highThreshold ? parseInt(highThreshold) : undefined,
-            }))
-            .setTimeout(30)
-            .build();
 
-        transaction.sign(senderKeypair);
-        const result = await server.submitTransaction(transaction);
-        console.log('Options set successfully:', result);
-        res.json({ message: 'Options set successfully' });
-    } catch (error) {
-        console.error('Error in set-options:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
+
+//####################
 
 app.listen(port, () => {
     console.log(`Diamante backend listening at http://localhost:${port}`);

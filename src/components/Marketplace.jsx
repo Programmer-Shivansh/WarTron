@@ -57,7 +57,7 @@ export default function Marketplace() {
 
     // Retrieve public and private keys from local storage
     const SecretKey = localStorage.getItem('SecretKey');
-    const publicKey = 'GDIONVXTDVTVAMRIL2AYNYORD3RD4YM2LEJUF4J6X36V636AF2WRWCTU'
+    const publicKey = 'TRdGnZGzq1bB5KfKCYGV7AXrpJFbqWHbXv'
     // const privateKey = localStorage.getItem('privateKey');
     // const privateKey = "SDBWZMZF4LHB5ZXUK6URQ4GAG5XNU4XDJ6BHATBOBESDIPXRDXVTMVB7";
     const price = `${weaponModels[weaponName].price}`;
@@ -65,14 +65,14 @@ export default function Marketplace() {
     try {
         // Post request to /make-payment with weapon details and keys
         console.log('Making payment with:', {
-            senderSecret: SecretKey,
-            receiverPublicKey: publicKey,
+          senderAddress: SecretKey,
+          receiverAddress: publicKey,
             amount: price
         });
 
         const response = await axios.post(`${url}/make-payment`, {
-            senderSecret: SecretKey,
-            receiverPublicKey: publicKey,
+          senderAddress: SecretKey,
+          receiverAddress: publicKey,
             amount: price
         });
 

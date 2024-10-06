@@ -34,7 +34,8 @@
     "simplex-noise": "^4.0.2",
     "tailwind-merge": "^2.4.0",
     "three": "0.153.0",
-    "three-stdlib": "^2.27.1"
+    "three-stdlib": "^2.27.1",
+    "tronweb": "^6.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.0.27",

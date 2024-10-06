@@ -10,6 +10,7 @@ import { userDataAtom } from './atoms/public';
 
 function App() {
   const SecretKey = useRecoilValue(userDataAtom);
+  console.log("Current SecretKey:", SecretKey);
   return (
     <ChakraProvider>
       <Routes>
