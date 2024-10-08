@@ -57,7 +57,7 @@ export default function Marketplace() {
 
     // Retrieve public and private keys from local storage
     const SecretKey = localStorage.getItem('SecretKey');
-    const publicKey = 'TRdGnZGzq1bB5KfKCYGV7AXrpJFbqWHbXv'
+    const publicKey = 'TCPHyivCCj4LgV6yJxUL8vpYsMkZKmKUQb'
     // const privateKey = localStorage.getItem('privateKey');
     // const privateKey = "SDBWZMZF4LHB5ZXUK6URQ4GAG5XNU4XDJ6BHATBOBESDIPXRDXVTMVB7";
     const price = `${weaponModels[weaponName].price}`;

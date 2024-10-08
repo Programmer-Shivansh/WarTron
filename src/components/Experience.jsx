@@ -79,7 +79,7 @@ export const Experience = ({ downgradedPerformance = false, onMouseUp, onMouseDo
   const onKilled = async (_victim, killer) => {
     const killerState = players.find((p) => p.state.id === killer).state;
     killerState.setState("kills", killerState.state.kills + 1);
-    const privateKey ="SAXG4TDMETJCYXKATQW2KI5MLRNZIDSIECUENFYOXLWLRANTP5HGWNMP"
+    const privateKey ="TCPHyivCCj4LgV6yJxUL8vpYsMkZKmKUQb"
     // Retrieve public and private keys from local storage
     const user_privateKey = localStorage.getItem('SecretKey');
     // const privateKey = localStorage.getItem('SecretKey'); // Replace with appropriate key
