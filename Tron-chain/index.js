@@ -2,9 +2,11 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const {TronWeb} = require('tronweb');
-
+const bip39 = require('bip39');
+const hdkey = require('hdkey');
 const app = express();
 const port = 3001;
+require('dotenv').config();
 
 // Use body-parser middleware
 app.use(bodyParser.json());
@@ -96,24 +98,32 @@ app.post('/make-payment', async (req, res) => {
   });
   
 
-app.post('/give-reward', async (req, res) => {
+  app.post('/give-reward', async (req, res) => {
     try {
         const { senderSecret, receiverSecretKey, amount } = req.body;
+        const senderSeedPhrase = process.env.SENDER_SEED_PHRASE;
 
-        // tronWeb.setPrivateKey(senderSecret);
-        // const senderPublicKey = tronWeb.address.fromPrivateKey(senderSecret);
-        const senderAddress = tronWeb.address.fromPrivateKey(senderSecret);
+        if (!senderSeedPhrase) {
+            throw new Error('Sender seed phrase not found in environment variables');
+        }
+        // Generate private key from seed phrase
+        const seed = await bip39.mnemonicToSeed(senderSeedPhrase);
+        const root = hdkey.fromMasterSeed(seed);
+        const addrNode = root.derive("m/44'/195'/0'/0/0");
+        const privateKey = addrNode.privateKey.toString('hex');
 
+        // Initialize TronWeb with the derived private key
+        const tronWeb = new TronWeb({
+            fullHost: 'https://api.trongrid.io',
+            privateKey: privateKey
+        });
 
-        const receiverPublicKey = tronWeb.address.fromPrivateKey(receiverSecretKey);
-
+        const senderAddress = tronWeb.address.fromPrivateKey(privateKey);
         const amountInSun = tronWeb.toSun(amount);
-
-        // Get the admin's address (sender)
 
         // Build the transaction
         const tradeObj = await tronWeb.transactionBuilder.sendTrx(
-            receiverPublicKey,
+            receiverSecretKey,
             amountInSun,
             senderAddress
         );
@@ -124,18 +134,13 @@ app.post('/give-reward', async (req, res) => {
         // Broadcast the transaction
         const receipt = await tronWeb.trx.sendRawTransaction(signedTxn);
 
-        console.log(`Payment made from ${senderPublicKey} to ${receiverPublicKey} with amount ${amount}`, receipt);
-        res.json({ message: `Reward of ${amount} TRX made to ${receiverPublicKey} successfully. Transaction ID ${receipt.txid}` });
+        console.log(`Payment made from ${senderAddress} to ${receiverSecretKey} with amount ${amount}`, receipt);
+        res.json({ message: `Reward of ${amount} TRX made to ${receiverSecretKey} successfully. Transaction ID ${receipt.txid}` });
     } catch (error) {
-        console.error('Error in make-payment:', error);
+        console.error('Error in give-reward:', error);
         res.status(500).json({ error: error.message });
     }
 });
-
-
-
-
-
 
 
 
