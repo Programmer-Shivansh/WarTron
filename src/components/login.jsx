@@ -92,6 +92,7 @@ export function Login() {
           // Here you would typically call your backend to verify the address and get a session token
           // For now, we'll just use the address as the key
           handleLogin(connectedAddress, connectedAddress);
+          navigate("/");
         }
       } else {
         throw new Error('TronLink is not installed or not ready');
