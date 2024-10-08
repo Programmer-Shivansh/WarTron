@@ -98,4 +98,4 @@ To set up Daichain Warfare locally, follow these steps:
 - Three.js
 - React.js
 - React-Three Fiber
-- Diamante Blockchain
+- Tron blockchain
